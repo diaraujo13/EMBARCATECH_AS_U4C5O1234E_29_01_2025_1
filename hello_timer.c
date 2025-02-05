@@ -25,6 +25,7 @@ void initialize_gpio() {
     // Inicializa o pino GPIO para o botão
     gpio_init(BUTTON_A_PIN);
     gpio_set_dir(BUTTON_A_PIN, GPIO_IN);
+    // Habilita o resistor de pull-up interno para o botão
     gpio_pull_up(BUTTON_A_PIN);
 }
 
