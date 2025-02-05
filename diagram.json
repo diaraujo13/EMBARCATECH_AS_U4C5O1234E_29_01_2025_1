@@ -1,0 +1,70 @@
+{
+    "version": 1,
+    "author": "wokwi",
+    "editor": "wokwi",
+    "parts": [
+      { "type": "board-pi-pico-w", "id": "pico", "top": -214.45, "left": -303.65, "attrs": {} },
+      {
+        "type": "wokwi-led",
+        "id": "led1",
+        "top": -154.8,
+        "left": -454.2,
+        "rotate": 90,
+        "attrs": { "color": "red" }
+      },
+      {
+        "type": "wokwi-led",
+        "id": "led2",
+        "top": -116.4,
+        "left": -454.2,
+        "rotate": 90,
+        "attrs": { "color": "yellow" }
+      },
+      {
+        "type": "wokwi-led",
+        "id": "led3",
+        "top": -78,
+        "left": -454.2,
+        "rotate": 90,
+        "attrs": { "color": "green" }
+      },
+      {
+        "type": "wokwi-resistor",
+        "id": "r3",
+        "top": -130.15,
+        "left": -587,
+        "rotate": 180,
+        "attrs": { "value": "1000" }
+      },
+      {
+        "type": "wokwi-resistor",
+        "id": "r4",
+        "top": -62.95,
+        "left": -548.6,
+        "rotate": 180,
+        "attrs": { "value": "1000" }
+      },
+      {
+        "type": "wokwi-resistor",
+        "id": "r5",
+        "top": -91.75,
+        "left": -567.8,
+        "rotate": 180,
+        "attrs": { "value": "1000" }
+      }
+    ],
+    "connections": [
+      [ "pico:GP0", "$serialMonitor:RX", "", [] ],
+      [ "pico:GP1", "$serialMonitor:TX", "", [] ],
+      [ "pico:GP11", "r3:2", "limegreen", [ "h-67.2", "v57.6", "h-240", "v-115.2" ] ],
+      [ "pico:GP12", "r5:2", "limegreen", [ "v-9.56", "h-67.2", "v57.52", "h-240", "v-76.72" ] ],
+      [ "pico:GP13", "r4:2", "limegreen", [ "v-19.16", "h-67.2", "v57.52", "h-240", "v-47.92" ] ],
+      [ "r4:1", "led1:A", "limegreen", [ "h0" ] ],
+      [ "r5:1", "led2:A", "limegreen", [ "h0" ] ],
+      [ "r3:1", "led3:A", "limegreen", [ "h0" ] ],
+      [ "pico:GND.3", "led3:C", "black", [ "h-67.2", "v-76.8", "h-86.4" ] ],
+      [ "led3:C", "led2:C", "black", [ "v9.6", "h-38" ] ],
+      [ "led2:C", "led1:C", "black", [ "h0.4", "v9.6", "h-38.8" ] ]
+    ],
+    "dependencies": {}
+  }
