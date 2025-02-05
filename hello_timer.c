@@ -1,76 +1,93 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 
-const uint GREEN_PIN = 11;
-const uint YELLOW_PIN = 12;
-const uint RED_PIN = 13;
+const uint BLUE_PIN = 11;
+const uint RED_PIN = 12;
+const uint GREEN_PIN = 13;
 
-volatile uint current_color = 'R';
+const uint BUTTON_A_PIN = 5;
 
-void turn_on_red() {
-    gpio_put(RED_PIN, 1);
-    gpio_put(YELLOW_PIN, 0);
-    gpio_put(GREEN_PIN, 0);
-}
-
-void turn_on_yellow() {
-    gpio_put(RED_PIN, 0);
-    gpio_put(YELLOW_PIN, 1);
-    gpio_put(GREEN_PIN, 0);
-}
-
-void turn_on_green() {
-    gpio_put(RED_PIN, 0);
-    gpio_put(YELLOW_PIN, 0);
-    gpio_put(GREEN_PIN, 1);
-}
+volatile uint current_color = 'B'; // Qual cor será desativada nesse momento
+volatile bool button_pressed = false; // Flag para indicar que o botão foi pressionado
+volatile bool turn_off_in_process = false;  // Flag para indicar se o ciclo de desligamento está em andamento
 
 void initialize_gpio() {
-    gpio_init(GREEN_PIN);
-    gpio_set_dir(GREEN_PIN, GPIO_OUT);
-    gpio_init(YELLOW_PIN);
-    gpio_set_dir(YELLOW_PIN, GPIO_OUT);
+    // Inicializa os pinos GPIO para os LEDs
     gpio_init(RED_PIN);
     gpio_set_dir(RED_PIN, GPIO_OUT);
-
-    // Inicializa o semáforo com a luz vermelha acesa
-    turn_on_red();
-    // Inicializa a variável de estado com a próximo LED na sequência
-    current_color = 'Y';
+    
+    gpio_init(BLUE_PIN);
+    gpio_set_dir(BLUE_PIN, GPIO_OUT);
+    
+    gpio_init(GREEN_PIN);
+    gpio_set_dir(GREEN_PIN, GPIO_OUT);
+    
+    // Inicializa o pino GPIO para o botão
+    gpio_init(BUTTON_A_PIN);
+    gpio_set_dir(BUTTON_A_PIN, GPIO_IN);
+    gpio_pull_up(BUTTON_A_PIN);
 }
 
-// Função de call-back do temporizador
-bool repeating_timer_callback(__unused struct repeating_timer *t)  {
+int64_t turn_off_callback(alarm_id_t id, void *user_data) {
+    // Executa o ciclo de desligamento: Blue, depois Red, depois Green
+    // e finalmente limpa a flag para indicar que o ciclo foi concluído.
+    printf("Current color: %c\n", current_color);
     switch (current_color) {
-        case 'R':
-            turn_on_red();
-            current_color = 'Y';
+
+        case 'B':
+            printf("Desligando o LED azul\n");
+            gpio_put(BLUE_PIN, 0);  
+            current_color = 'R';
+            add_alarm_in_ms(3000, turn_off_callback, NULL, false);
             break;
-        case 'Y':
-           turn_on_yellow();
+        case 'R':
+            printf("Desligando o LED vermelho\n");
+            gpio_put(RED_PIN, 0);   
             current_color = 'G';
+            add_alarm_in_ms(3000, turn_off_callback, NULL, false);
+            break;
+        case 'G':
+            printf("Desligando o LED verde\n");
+            gpio_put(GREEN_PIN, 0);   
+            current_color = 'B';
+            turn_off_in_process = false;  // Ciclo completo, limpa a flag
             break;
         default:
-            turn_on_green();    
-            current_color = 'R';
             break;
     }
 
-    return true;
+    // Retorna 0 para indicar que o alarme foi tratado com sucesso
+    // e não precisa ser reagendado.
+    return 0;
+}
+
+void button_callback(uint gpio, uint32_t events) {
+    // Inicia um novo ciclo apenas se não houver outro em andamento.
+    if (!turn_off_in_process) {
+        button_pressed = true;
+        turn_off_in_process = true;   // Marca que o ciclo está em andamento
+
+        // Liga todos os LEDs.
+        gpio_put(RED_PIN, 1);
+        gpio_put(BLUE_PIN, 1);
+        gpio_put(GREEN_PIN, 1);
+
+        // Agenda o ciclo de desligamento.
+        add_alarm_in_ms(3000, turn_off_callback, NULL, false);
+    }
 }
 
 int main() {
     stdio_init_all();
     initialize_gpio();
 
-    // atraso de 3 segundos
-    struct repeating_timer timer;
-    add_repeating_timer_ms(3000, repeating_timer_callback, NULL, &timer);
+    gpio_set_irq_enabled_with_callback(BUTTON_A_PIN, GPIO_IRQ_EDGE_FALL, true, &button_callback);
 
     while (1) {
-        printf("Estado dos pinos atual: R=%d, Y=%d, G=%d\n", gpio_get(RED_PIN), gpio_get(YELLOW_PIN), gpio_get(GREEN_PIN));
-        sleep_ms(1000);
+        if (button_pressed) {
+            button_pressed = false;
+        }
+        sleep_ms(100); // Atraso para debounce
     }
-
     return 0;
 }
